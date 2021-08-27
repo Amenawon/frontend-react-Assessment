@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import PropTypes from "prop-types";
 import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
@@ -10,6 +10,7 @@ import TablePagination from "@material-ui/core/TablePagination";
 import TableRow from "@material-ui/core/TableRow";
 import TableSortLabel from "@material-ui/core/TableSortLabel";
 import Paper from "@material-ui/core/Paper";
+import SearchBar from "material-ui-search-bar";
 
 function EnhancedTableHead(props) {
   const { classes, order, orderBy, onRequestSort, headerCells } = props;
@@ -78,15 +79,42 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-function CustomTable({ rows, headerCells }) {
+function CustomTable({ rows, headerCells, filterColumns, orderBy }) {
   const classes = useStyles();
   const [order, setOrder] = React.useState("asc");
-  const [orderBy, setOrderBy] = React.useState("calories");
+  const [tableOrderBy, setOrderBy] = React.useState(orderBy);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [searched, setSearched] = React.useState("");
+  const [tableRows, setTableRows] = React.useState(rows);
+
+  useEffect(() => {
+    console.log(rows, "rows");
+    setTableRows(rows);
+  }, [rows]);
+  console.log(tableRows, "tablerows");
+  const requestSearch = (searchedVal, filterColumns) => {
+    let filteredRows = [];
+    filterColumns.map((column) => {
+      let tempFilteredRows = rows.filter((row) => {
+        return row[column].toLowerCase().includes(searchedVal.toLowerCase());
+      });
+      tempFilteredRows.forEach((row) => {
+        filteredRows.push(row);
+      });
+      return filteredRows;
+    });
+    setTableRows(filteredRows);
+    console.log(filteredRows);
+  };
+
+  const cancelSearch = () => {
+    setSearched("");
+    requestSearch(searched, filterColumns);
+  };
 
   const handleRequestSort = (event, property) => {
-    const isAsc = orderBy === property && order === "asc";
+    const isAsc = tableOrderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
   };
@@ -110,25 +138,30 @@ function CustomTable({ rows, headerCells }) {
     return stabilizedThis.map((el) => el[0]);
   }
 
-  function descendingComparator(a, b, orderBy) {
-    if (b[orderBy] < a[orderBy]) {
+  function descendingComparator(a, b, tableOrderBy) {
+    if (b[tableOrderBy] < a[tableOrderBy]) {
       return -1;
     }
-    if (b[orderBy] > a[orderBy]) {
+    if (b[tableOrderBy] > a[tableOrderBy]) {
       return 1;
     }
     return 0;
   }
 
-  function getComparator(order, orderBy) {
+  function getComparator(order, tableOrderBy) {
     return order === "desc"
-      ? (a, b) => descendingComparator(a, b, orderBy)
-      : (a, b) => -descendingComparator(a, b, orderBy);
+      ? (a, b) => descendingComparator(a, b, tableOrderBy)
+      : (a, b) => -descendingComparator(a, b, tableOrderBy);
   }
 
   return (
     <div className="">
       <Paper className={classes.paper}>
+        <SearchBar
+          value={searched}
+          onChange={(searchVal) => requestSearch(searchVal, filterColumns)}
+          onCancelSearch={() => cancelSearch()}
+        />
         <TableContainer>
           <Table
             className={classes.table}
@@ -139,13 +172,13 @@ function CustomTable({ rows, headerCells }) {
             <EnhancedTableHead
               classes={classes}
               order={order}
-              orderBy={orderBy}
+              orderBy={tableOrderBy}
               onRequestSort={handleRequestSort}
-              rowCount={rows.length}
+              rowCount={tableRows.length}
               headerCells={headerCells}
             />
             <TableBody>
-              {stableSort(rows, getComparator(order, orderBy))
+              {stableSort(tableRows, getComparator(order, tableOrderBy))
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row, index) => {
                   const cellValues = Object.values(row);
@@ -167,7 +200,7 @@ function CustomTable({ rows, headerCells }) {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={rows.length}
+          count={tableRows.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
