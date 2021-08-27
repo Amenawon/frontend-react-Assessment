@@ -15,7 +15,6 @@ function Projects() {
     let httpService = new HttpService();
     httpService.getData().then((response) => {
       const projects = response;
-      console.log(projects);
       setAppState({ loading: false, projects: projects });
       const rows = projects.map((project) => ({
         project: project.project,
@@ -31,7 +30,14 @@ function Projects() {
     });
   }, [setAppState, setRows]);
 
-  function formatDate(date) {}
+  function formatDate(stringDate) {
+    const date = new Date(stringDate);
+    const d = date.getDate();
+    const m = date.getMonth() + 1;
+    const y = date.getFullYear();
+
+    return `${d < 10 ? `0${d}` : d}.${m < 10 ? `0${m}` : m}.${y}`;
+  }
   const headerCells = [
     { id: "project", numeric: false, disablePadding: true, label: "Project" },
     {
@@ -67,12 +73,19 @@ function Projects() {
     },
     { id: "currency", numeric: true, disablePadding: false, label: "Currency" }
   ];
+  const filterColumns = ["description"];
+  const orderBy = "startDate";
   return (
     <div className="Projects">
       {appState.loading ? (
         <Loader></Loader>
       ) : (
-        <CustomTable rows={appRows} headerCells={headerCells}></CustomTable>
+        <CustomTable
+          rows={appRows}
+          headerCells={headerCells}
+          filterColumns={filterColumns}
+          orderBy={orderBy}
+        ></CustomTable>
       )}
     </div>
   );
